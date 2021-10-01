@@ -1,240 +1,176 @@
-#Core Pkgs
-import streamlit as st
-
-# NLP
-import neattext as nfx
-import spacy
-from collections import Counter
-nlp = spacy.load('en_core_web_sm')
-from spacy import displacy
-from textblob import TextBlob
-import textdistance as td
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-# EDA
+# -*- coding: utf-8 -*-
+# Core Pkgs
+import streamlit as st 
+import streamlit.components.v1 as stc 
 import pandas as pd
-
-# Text Downloader
-import base64
-import time
-timestr = time.strftime('%Y%m%d-%H%M%S')
+import re
+from datetime import datetime
 
 
-# Data Viz Pkgs
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use("Agg")
-from wordcloud import WordCloud
+import plotly.express as px 
+import altair as alt
+
+# Pages
+from jobposting_app import JobPostingPage
+from candidate_app import CandidatesPage
+from matcher_app import MatcherPage,MatcherPage_For_LoggedIn_Email
+from metrics_app import MetricsPage
+from reports_app import ReportsPage
+from edit_profile_app import ProfilePage
+from edit_posting_app import ShowJobPostsPage,ShowCandidatesPostsPage,ShowCandidatesPostsPage_For_LoggedIn_User
+from admin_dashboard_app import EditAllProfiles_Page
 
 
-# Fxns
-def text_analyzer(my_text):
-	docx = nlp(my_text)
-	allData = [(token.text, token.shape_, token.pos_, token.tag_, token.lemma_,token.is_alpha, token.is_stop) for token in docx]
-	df = pd.DataFrame(allData, columns=['Token', 'Shape', 'PoS', 'Tag', 'Lemma', 'IsAlpha', 'IsStopWords'])
-	return df
+# DB Mgmt
+from app_utils import (create_uploaded_files_table,create_candidates_table,create_page_visited_table,add_page_visited_details,view_all_page_visited_details,create_jobposting_table)
+from app_utils import (create_usertable,add_userdata,login_user,view_all_users,login_admin)
 
-def text_cleaner(my_text):
-	docx = nfx(my_text)
-	docx = docx.lower().remove_stopwords().remove_numbers().remove_punctuations().remove_special_characters()
-	return docx
+EMAIL_REGEX =  re.compile(r"[\w\.-]+@[\w\.-]+")
 
-def plot_wordcloud(my_text):
-	my_wordcloud = WordCloud().generate(my_text)
-	fig = plt.figure()
-	plt.imshow(my_wordcloud, interpolation='bilinear')
-	plt.axis('off')
-	st.pyplot(fig)
+def validate_email(email):
+	if re.match(EMAIL_REGEX, email):
+		return email 
 
-def get_entitities(my_text):
-	docx = nlp(my_text)
-	entities = [(entity.text, entity.label_) for entity in docx.ents]
-	df_entities = pd.DataFrame(entities, columns=['Token', 'Label'])
-	return df_entities
 
-def text_downloader(raw_text):
-	b64 = base64.b64encode(raw_text.encode()).decode()
-	new_filename = "new_text_file_{}_.txt".format(timestr)
-	st.markdown("#### Download File ###")
-	href = f'<a href="data:file/txt;base64,{b64}" download="{new_filename}">Click Here!!</a>'
-	st.markdown(href,unsafe_allow_html=True)
-
-def match(raw_text, job_text):
-    j = td.jaccard.similarity(raw_text, job_text)
-    s = td.sorensen_dice.similarity(raw_text, job_text)
-    c = td.cosine.similarity(raw_text, job_text)
-    o = td.overlap.normalized_similarity(raw_text, job_text)
-    total = (j+s+c+o)/4
-    # total = (s+o)/2
-    return total*100
-
-vectorizer = TfidfVectorizer()
-def cosine_sim(text1, text2):
-	tfidf = vectorizer.fit_transform([text1, text2])
-	return ((tfidf * tfidf.T).A)[0,1]
 
 def main():
-	st.title('Candidate/Job Posting Matcher')
+	create_usertable()
+	create_jobposting_table()
+	create_candidates_table()
+	create_uploaded_files_table()
+	create_page_visited_table()
 	
-	st.subheader('Job Posting Analysis')
-
-	text_file = st.file_uploader('Upload Txt File', type=['txt'])
-	if text_file is not None:
-		file_details = {'Filename':text_file.name, 'Filesize':text_file.size, 'Filetype':text_file.type}
-		st.write(file_details)
-		# Decode Text
-		job_text = text_file.read().decode('utf-8')
-		st.write(job_text)
-
-		with st.expander('Text Analysis'):
-			token_result_df = text_analyzer(job_text)
-			st.dataframe(token_result_df)
-
-		st.subheader('Most Common Words in the Job Posting')
-		# all tokens that arent stop words or punctuations
-		docj = nlp(job_text)
-		words = [token.lemma_
-		for token in docj
-		if not token.is_stop and not token.is_punct]
-
-		# noun tokens that arent stop words or punctuations
-		nouns_j = [token.lemma_
-			 for token in docj
-			 if (not token.is_stop and
-			     not token.is_punct and
-			     token.pos_ == "NOUN")]
+	menu = ["Home-Login","Signup","Manage","About"]
+	choice = st.sidebar.selectbox("Menu",menu)
 
 
-		# ten most common noun tokens
-		noun_freq = Counter(nouns_j)
-		common_nouns_j = noun_freq.most_common(100)
-		df_common_noums_j = pd.DataFrame(common_nouns_j, columns=['Word', 'Ocorrencies'])
-		st.dataframe(df_common_noums_j)
+	# if choice == "Home":
+	# 	# Track Page
+	# 	add_page_visited_details('Home',datetime.now())
+	# 	st.subheader("Job Analyzer Apps")
+	# 	# st.write(st.__version__)
 
-		st.subheader('Job Posting Wordcloud')
-		plot_wordcloud(job_text)
+	if choice == "Home-Login":
+		# Track Page
+		add_page_visited_details('Login',datetime.now())
+		st.subheader("Login")
 
-		st.subheader('Candidate Analysis')
-		normalize_case = st.sidebar.checkbox("Normalize Case")
-		clean_stopwords = st.sidebar.checkbox('Stopwords')
-		clean_punctuations = st.sidebar.checkbox('Puntuations')
-		clean_emails = st.sidebar.checkbox('Emails')
-		clean_special_char = st.sidebar.checkbox('Special Characters')
-		clean_numbers = st.sidebar.checkbox('Numbers')
-		clean_urls = st.sidebar.checkbox('URLs')
+		user_email = st.sidebar.text_input("Email")
+		# QA: using username or email
+		user_password = st.sidebar.text_input("Password",type='password')
+		login_button = st.sidebar.checkbox("Log In")
 
-		raw_text = st.text_area("Enter Text",)
-		if st.button("Analyze"):
-			col1, col2 = st.columns(2)
+		if login_button:
+			access_granted = login_user(user_email,user_password)
+			if access_granted:
+				st.info("Login as:{}".format(user_email))
+				menu_users = ["JobPosting","Candidates","Matcher","Edit Candidates","Edit Profile"]
+				user_choice = st.sidebar.selectbox("User Menu",menu_users)
+				if user_choice == "JobPosting":
+					st.subheader("Job Posting")
+					JobPostingPage(user_email)
 
-			with col1:
-				with st.expander('Original Text'):
-					st.write(raw_text)
-					st.write(dir(nfx))
-					text_downloader(raw_text)
-
-			with col2:
-				with st.expander('Processed Text'):
-					if normalize_case:
-							raw_text = raw_text.lower()
-
-					if clean_stopwords:
-						raw_text = nfx.remove_stopwords(raw_text)
-
-					if clean_numbers:
-						raw_text = nfx.remove_numbers(raw_text)
-
-					if clean_urls:
-						raw_text = nfx.remove_urls(raw_text)
-
-					if clean_emails:
-						raw_text = nfx.remove_emails(raw_text)
-
-					if clean_punctuations:
-						raw_text = nfx.remove_punctuations(raw_text)
-
-					if clean_special_char:
-						raw_text = nfx.remove_special_characters(raw_text)
-
-					st.write(raw_text)
-
-			with st.expander('Text Analysis'):
-				token_result_df = text_analyzer(raw_text)
-				st.dataframe(token_result_df)
-
-			st.subheader('Most Common Noums in Candidate')
-			# all tokens that arent stop words or punctuations
-			docx = nlp(raw_text)
-			words = [token.lemma_
-			for token in docx
-			if not token.is_stop and not token.is_punct]
-
-			# noun tokens that arent stop words or punctuations
-			nouns = [token.lemma_
-			         for token in docx
-			         if (not token.is_stop and
-			             not token.is_punct and
-			             token.pos_ == "NOUN")]
+				elif user_choice == "Candidates":
+					st.subheader("Candidates Material")
+					CandidatesPage(user_email)
 
 
-			# ten most common noun tokens
-			noun_freq = Counter(nouns)
-			common_nouns = noun_freq.most_common(100)
-			df_common_noums = pd.DataFrame(common_nouns, columns=['Word', 'Ocorrencies'])
-			st.dataframe(df_common_noums)
+				elif user_choice == "Matcher":
+					st.subheader("Matcher")
+					MatcherPage_For_LoggedIn_Email(user_email)
+
+				elif user_choice == "Edit Profile":
+					st.subheader("Edit Profile")
+					ProfilePage(user_email)
+
+				elif user_choice == "Edit Candidates":
+					st.subheader("Edit Candidates")
+					ShowCandidatesPostsPage_For_LoggedIn_User(user_email)
+			else:
+				st.warning("Incorrect Email or Password")
 
 
-			st.subheader('Candidate Wordcloud')
-			plot_wordcloud(raw_text)
 
-			# with st.expander('Plot Wordcloud'):
-			# 	plot_wordcloud(token_result_df['Lemma'])
+	elif choice == "Signup":
+		# Track Page
+		add_page_visited_details('Signup',datetime.now())
+		st.subheader("Signup")
 
-			st.subheader('Parts of Speech (PoS) Tags')
-			fig = plt.figure()
-			sns.countplot(token_result_df['PoS'])
-			plt.xticks(rotation=45)
-			st.pyplot(fig)
+		with st.form(key="SignupForm"):
+			signup_col1,signup_col2 = st.columns(2)
+			with signup_col1:
+				firstname = st.text_input("First Name")
+				lastname = st.text_input("Last Name")
+				email = st.text_input("Email")
+				new_password = st.text_input("Password",type='password')
 
-			st.subheader("Sentiment Analysis")
-			blob = TextBlob(raw_text)
-			result_sentiment = blob.sentiment
-			st.success(result_sentiment)
-			st.write('The polarity defines the phase of emotions expressed in the analyzed sentence. It ranges from -1 to 1 and goes like this: Very Positive, Positive, Neutral, Negative, Very Negative')
-			st.write('Subjectivity helps in determining the personal states of the speaker including Emotions, Beliefs, and opinions. It has values from 0 to 1 and a value closer to 0 shows the sentence is objective and vice versa.')
+			with signup_col2:
+				school = st.selectbox("School",["School1","School2"])
+				year = st.date_input("Year",)
+				class_level = st.selectbox("Class",["1","2","3"])
+				emphasis = st.selectbox("Emphasis",["One","Two"])
+
+			button = st.form_submit_button(label="Signup")
+		if button:
+			is_email = validate_email(email)
+			if is_email is not None:
+				st.success("Your account has been created")
+				add_userdata(firstname=firstname,lastname=lastname,email=email,password=new_password,
+					school=school,year=year,classlevel=class_level,emphasis=emphasis)
+			else:
+				st.warning("Invalid Email")
 
 
-			st.subheader('Compared Wordclouds Candidate - Job Posting')
-			col1, col2 = st.columns(2)
+	elif choice == "Manage":
+		# Track Page
+		add_page_visited_details('Manage',datetime.now())
+		st.subheader("Admin Login")
+		admin_email = st.sidebar.text_input("Email")
+		admin_password = st.sidebar.text_input("Password",type='password')
+		admin_login_button = st.sidebar.checkbox("Log In")
 
-			with col1:
-				st.write('Candidate')
-				plot_wordcloud(raw_text)
+		if admin_login_button:
+			admin_access_granted = login_admin(admin_email,admin_password)
+			if admin_access_granted:
+				st.success("Hello Admin")
+				menu_admin = ["Matcher","Reports","Edit-All-Users","All-Job-Posts","All-Candidates-Posts","AppMetrics"]
+				admin_choice = st.sidebar.selectbox("Admin Menu",menu_admin)
+				if admin_choice == "Reports":
+					st.subheader("Reports")
+					ReportsPage()
 
-			with col2:
-				st.write('Job Posting')
-				plot_wordcloud(job_text)
+				elif admin_choice == "Matcher":
+					st.subheader("Matcher")
+					MatcherPage()
 
-			st.subheader('Compared Key-words')
-			col1, col2 = st.columns(2)
+				elif admin_choice == "All-Job-Posts":
+					st.subheader("Job Posts")
+					ShowJobPostsPage()
 
-			with col1:
-				st.write('Candidate')
-				st.dataframe(df_common_noums)
+				elif admin_choice == "All-Candidates-Posts":
+					st.subheader("Candidates Posts")
+					ShowCandidatesPostsPage()
 
-			with col2:
-				st.write('Job Posting')
-				st.dataframe(df_common_noums_j)
 
-			#st.subheader('Index of Similarity between Job Posting and Candidate')
-			#similarity=match(raw_text, job_text)
-			#st.write(similarity)
-			
-			st.subheader('Similarity Index Job Posting and Candidate')
-			sim_score = cosine_sim(raw_text, job_text)
-			st.write("Jobs vs Candidate:{}".format(sim_score))
-			st.write("The percentage of overlap between the candidate's competencies and the job posting requirements.")
-    
+				elif admin_choice == "Edit-All-Users":
+					st.subheader("Edit All Profiles")
+					EditAllProfiles_Page()
+
+
+				else:
+					st.subheader("AppMetrics")
+					MetricsPage()
+		
+
+	else:
+		# Track Page
+		add_page_visited_details('About',datetime.now())
+		st.subheader("About")
+
+
 if __name__ == '__main__':
 	main()
+
+
+
+
