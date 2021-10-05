@@ -7,7 +7,8 @@ import re
 from datetime import datetime
 import nltk
 # Import corpora
-from nltk import nltk_download_utils
+# from nltk import nltk_download_utils
+from nltk_download_utils import nltk
 
 import plotly.express as px 
 import altair as alt
