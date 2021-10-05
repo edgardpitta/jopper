@@ -6,7 +6,8 @@ import pandas as pd
 import re
 from datetime import datetime
 import nltk
-
+# Import corpora
+from nltk import nltk_download_utils
 
 import plotly.express as px 
 import altair as alt
