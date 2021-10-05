@@ -5,10 +5,10 @@ import streamlit.components.v1 as stc
 import pandas as pd
 import re
 from datetime import datetime
-# import nltk
+import nltk
 # Import corpora
 # from nltk import nltk_download_utils
-from nltk_download_utils import nltk
+# from nltk_download_utils import nltk
 
 import plotly.express as px 
 import altair as alt
