@@ -11,6 +11,11 @@ import os
 import neattext.functions as nfx
 from collections import Counter
 from wordcloud import WordCloud 
+
+# Fix Issue with textblob
+import nltk_utils
+
+
 from textblob import TextBlob
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,6 +26,8 @@ import matplotlib
 matplotlib.use('Agg')
 import altair as alt 
 import seaborn as sns
+
+
 
 TEMP_DIR = 'tempDir'
 

@@ -135,9 +135,10 @@ def MatcherPage():
     ax4.imshow(candidate_wordcloud, interpolation="bilinear")
     ax4.set_title("Wordcloud[Candidate]")
     st.pyplot(fig)
-    st.info("Saved Plot")
-    filename_to_save_as = 'comparison_plot_{}.pdf'.format(timestr)
-    plot_comparisons(processed_text1,processed_text2,filename=filename_to_save_as)
+    # Uncomment to Save
+    # st.info("Saved Plot")
+    # filename_to_save_as = 'comparison_plot_{}.pdf'.format(timestr)
+    # plot_comparisons(processed_text1,processed_text2,filename=filename_to_save_as)
 
 
   with st.expander("Sentiment Analysis"):
@@ -236,9 +237,11 @@ def MatcherPage_For_LoggedIn_Email(email):
     ax4.imshow(candidate_wordcloud, interpolation="bilinear")
     ax4.set_title("Wordcloud[Candidate]")
     st.pyplot(fig)
-    st.info("Saved Plot")
-    filename_to_save_as = 'comparison_plot_{}.pdf'.format(timestr)
-    plot_comparisons(processed_text1,processed_text2,filename=filename_to_save_as)
+    
+    # Uncomment to Save
+    # st.info("Saved Plot")
+    # filename_to_save_as = 'comparison_plot_{}.pdf'.format(timestr)
+    # plot_comparisons(processed_text1,processed_text2,filename=filename_to_save_as)
 
 
   with st.expander("Sentiment Analysis"):

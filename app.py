@@ -5,10 +5,7 @@ import streamlit.components.v1 as stc
 import pandas as pd
 import re
 from datetime import datetime
-import nltk
-# Import corpora
-# from nltk import nltk_download_utils
-# from nltk_download_utils import nltk
+
 
 import plotly.express as px 
 import altair as alt
@@ -108,10 +105,10 @@ def main():
 				new_password = st.text_input("Password",type='password')
 
 			with signup_col2:
-				school = st.selectbox("School",["School1","School2"])
+				school = st.selectbox("School",["Belo Campus","Other"])
 				year = st.date_input("Year",)
-				class_level = st.selectbox("Class",["1","2","3"])
-				emphasis = st.selectbox("Emphasis",["One","Two"])
+				class_level = st.selectbox("Class",[1,2,3,4,5,6,7,8,9,10])
+				emphasis = st.selectbox("Emphasis",["M1", "CFM", "IB", "PPMBD", "IMBD", "Other"])
 
 			button = st.form_submit_button(label="Signup")
 		if button:
